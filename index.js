@@ -1,5 +1,6 @@
-const axios = require('axios')
-const tf = require('@tensorflow/tfjs-node')
+const axios        = require('axios')
+const readlineSync = require('readline-sync')
+const tf           = require('@tensorflow/tfjs-node')
 
 const getData = async () => {
   const { data: cars } = await axios.get('https://storage.googleapis.com/tfjs-tutorials/carsData.json')
@@ -69,56 +70,15 @@ const trainModel = async (model, inputs, labels) => {
   });
 }
 
-function testModel(model, inputData, normalizationData) {
-  const {inputMax, inputMin, labelMin, labelMax} = normalizationData;  
-  
-  // Generate predictions for a uniform range of numbers between 0 and 1;
-  // We un-normalize the data by doing the inverse of the min-max scaling 
-  // that we did earlier.
-  const [xs, preds] = tf.tidy(() => {
-    
-    const xs = tf.linspace(0, 1, 100);      
-    const preds = model.predict(xs.reshape([100, 1]));      
-    
-    const unNormXs = xs
-      .mul(inputMax.sub(inputMin))
-      .add(inputMin);
-    
-    const unNormPreds = preds
-      .mul(labelMax.sub(labelMin))
-      .add(labelMin);
-    
-    // Un-normalize the data
-    return [unNormXs.dataSync(), unNormPreds.dataSync()];
-  });
-  
- 
-  const predictedPoints = Array.from(xs).map((val, i) => {
-    return {x: val, y: preds[i]}
-  });
-  
-  const originalPoints = inputData.map(d => ({
-    x: d.horsepower, y: d.mpg,
-  }));
- 
-  predictedPoints.sort((a, b) => a.x > b.x)
-  originalPoints.sort((a, b) => a.x > b.x)
-  
-  for (let i = 0; i < predictedPoints.length; i++) {
-    console.log('predicted: ', predictedPoints[i])
-    console.log('original: ', originalPoints[i])
-    console.log('--------------------------------------------')
-  }
-}
-
-const run = async () => {
+const main = async () => {
   const data = await getData()
   const tensorData = convertToTensor(data)
   const model = createModel()
   
   await trainModel(model, tensorData.inputs, tensorData.labels)
 
-  // testModel(model, data, tensorData);
+  return model
 } 
 
-run()
+main()
+  .then(model => {})
